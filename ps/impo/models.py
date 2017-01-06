@@ -715,11 +715,26 @@ class Source(models.Model):
             if self.model_name == 'IZone':
                 #TODO: insert some tests to ensure that the meta-data is the same across code
                 cursor = connection.cursor()
-                #delete those with no PID
+                
+                #make geometries valid
                 cursor.execute("""UPDATE """ + IZone._meta.db_table + """
                                 SET    geom = ST_MakeValid(geom)
                                         """)
                 
+                #clean data
+                cursor.execute("""UPDATE """ + IZone._meta.db_table + """
+                                SET    code = 'RM-30'
+                                WHERE    code = 'RM30'
+                                """)
+                
+                #fix screwed up urls
+                cursor.execute("""UPDATE """ + IZone._meta.db_table + """
+                                SET    url = LEFT(url, LENGTH(url) - STRPOS(REVERSE(url), '=') + 1) || REPLACE(code, '-', '')
+                                """)
+                
+                
+                
+                #alter CD zone codes
                 cursor.execute("""UPDATE """ + IZone._meta.db_table + """
                                 SET    code = code || ' (' || REPLACE(txt, 'B/L ', '') || ')'
                                 WHERE    code = 'CD'
