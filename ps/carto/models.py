@@ -8,18 +8,15 @@ import base64
 import json
 import sys
 import argparse
-try:
-    import requests
-except ImportError:
-    print('The requests package is required: http://docs.python-requests.org/en/latest/user/install/#install')
-    sys.exit()
+import requests
+
  
 class CartoDB:
     def __init__(self, options):
         # do stuff
         self.options = options
-        self.api_url = "https://%s.cartodb.com/api/v2/sql" % (self.options['u'])
-        self.import_url = "https://%s.cartodb.com/api/v1/imports/?api_key=%s" % (self.options['u'], self.options['k'])
+        self.api_url = "https://%s.carto.com/api/v2/sql" % (self.options['u'])
+        self.import_url = "https://%s.carto.com/api/v1/imports/?api_key=%s" % (self.options['u'], self.options['k'])
         self.new_tables = []
         self.internal_columns = ['created_at', 'updated_at', 'the_geom', 'the_geom_webmercator', 'cartodb_id']
         self.type_map = {'string':'text', 'boolean': 'boolean', 'date': 'timestamp', 'number':'numeric'}
@@ -48,7 +45,7 @@ class CartoDB:
         complete = False
         last_state = ''
         while not complete: 
-            import_status_url = "https://%s.cartodb.com/api/v1/imports/%s?api_key=%s" % (self.options['u'], data['item_queue_id'], self.options['k'])
+            import_status_url = "https://%s.carto.com/api/v1/imports/%s?api_key=%s" % (self.options['u'], data['item_queue_id'], self.options['k'])
             response = requests.get(import_status_url)
             d = response.json()
             if last_state!=d['state']:

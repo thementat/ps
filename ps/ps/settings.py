@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'prop.apps.PropConfig',
     'impo.apps.ImpoConfig',
+    'mls.apps.MlsConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
