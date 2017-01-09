@@ -23,6 +23,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import datetime
 from impo.models import IParcel, ILot, IZone, IPolicy, IProperty, IValue
+from mls.models import Listing
 
 class Muni(models.Model):
     name = models.CharField(max_length=100)
@@ -337,6 +338,13 @@ class Property(models.Model):
                         WHERE    ip.parcel_id IS NOT NULL
                                 AND o.ext IS NULL""")
             
+@receiver(post_save, sender=Property)
+def update_Listing_Propertychange(sender, update_fields, created, instance, **kwargs):
+    if created or update_fields is 'ext':
+        
+        # find all Listing objects where pid = new ext, and set property = new record
+        Listing.objects.filter(pid=instance.ext).update(property=instance)
+                
 class Value(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE, db_index=True)
     valdate = models.DateField(null=True)
