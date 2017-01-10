@@ -1,5 +1,7 @@
 from django.db import models
 from prop.models import Property
+from django.dispatch import receiver
+from django.db.models.signals import post_save
 
 import imaplib
 import email
@@ -47,6 +49,14 @@ class Listing(models.Model):
     development_units = models.IntegerField(null=True)
     strata_units = models.IntegerField(null=True)
     
+@receiver(post_save, sender=Property)
+def update_Listing_Propertychange(sender, update_fields, created, instance, **kwargs):
+    if created or update_fields is 'ext':
+        
+        # find all Listing objects where pid = new ext, and set property = new record
+        #TODO: would this be simpler for us to manage at object creation?
+        Listing.objects.filter(pid=instance.ext).update(property=instance)
+                
 class Paragon_Field(models.Model):
     search = models.ForeignKey(Search, on_delete=models.CASCADE, db_index=True)
     name = models.CharField(max_length=50, db_index=True)
