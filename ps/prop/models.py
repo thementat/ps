@@ -85,6 +85,9 @@ class Zone(models.Model):
     name = models.CharField(max_length=50, null=True)
     url = models.CharField(max_length=250, null=True)
     geom = models.MultiPolygonField(srid=4326, null=True)
+    min_area = models.DecimalField(null=True, max_digits=10, decimal_places=4)
+    min_width = models.DecimalField(null=True, max_digits=10, decimal_places=4)
+    min_depth = models.DecimalField(null=True, max_digits=10, decimal_places=4)
     fsr = models.DecimalField(null=True, max_digits=10, decimal_places=4)
     uph = models.DecimalField(null=True, max_digits=10, decimal_places=4)
     height = models.DecimalField(null=True, max_digits=10, decimal_places=4)
@@ -343,6 +346,7 @@ def update_Listing_Propertychange(sender, update_fields, created, instance, **kw
     if created or update_fields is 'ext':
         
         # find all Listing objects where pid = new ext, and set property = new record
+        #TODO: would this be simpler for us to manage at object creation?
         Listing.objects.filter(pid=instance.ext).update(property=instance)
                 
 class Value(models.Model):
