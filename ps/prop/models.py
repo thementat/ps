@@ -22,7 +22,7 @@ from django.db import connection
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import datetime
-from impo.models import IParcel, ILot, IZone, IPolicy, IProperty, IValue
+from impo.models import IParcel, ILot, IZone, IPolicy, IProperty, IValue, IStreet
 
 
 class Muni(models.Model):
@@ -392,5 +392,37 @@ class Value(models.Model):
                                 AND o.property_id = ip.property_id
                         WHERE    o.property_id IS NULL""")
 
-
-
+class Street(models.Model):
+    muni = models.ForeignKey(Muni, on_delete=models.CASCADE, db_index=True)
+    ext = models.CharField(max_length=50, null=True)
+    street_prefix = models.CharField(max_length=20, null=True)
+    street = models.CharField(max_length=50, null=True)
+    street_type = models.CharField(max_length=20, null=True)
+    street_suffix = models.CharField(max_length=20, null=True)
+    type = models.CharField(max_length=50, null=True)
+    cls = models.CharField(max_length=50, null=True)
+    geom = models.MultiLineStringField(srid=4326)
+    
+    
+    @classmethod
+    def merge(cls, muni):
+        cursor = connection.cursor()
+        
+        all_ip = IStreet.objects.all()
+        
+        #delete streets not in import
+        Street.objects.filter(muni=muni).filter(istreet__isnull=True).delete()
+        
+        #get or create all new parcels, and save if changed
+        for ip in all_ip:
+            obj, created = Street.objects.update_or_create(
+                id=ip.street_id, 
+                defaults={'muni' : muni
+                          , 'ext' : ip.txt
+                          , 'street_prefix' : ip.street_prefix
+                          , 'street' : ip.street
+                          , 'street_type' : ip.street_type
+                          , 'street_suffix' : ip.street_suffix
+                          , 'type' : ip.type
+                          , 'cls' : ip.cls
+                          , 'geom' : ip.geom})

@@ -740,7 +740,70 @@ class Source(models.Model):
                                 WHERE    code = 'CD'
                                 """)
                 
+            if self.model_name == 'IStreet':
                 
+                cursor = connection.cursor()
+                
+                cursor.execute("""UPDATE """ + IStreet._meta.db_table + """
+                                SET    street = UPPER(street)
+                                    """)
+                
+                
+                # separate the street names from street types etc
+                cursor.execute("""UPDATE """ + IStreet._meta.db_table + """
+                                SET    street = SUBSTRING(street, 1, CHAR_LENGTH(street) - STRPOS(REVERSE(street), ' '))
+                                    , street_suffix =  RIGHT(street, STRPOS(REVERSE(street), ' ') - 1)
+                                WHERE    RIGHT(street, STRPOS(REVERSE(street), ' ') ) IN (' N', ' E', ' S', ' W', ' NE', ' NW', ' SE', ' SW', ' DIV')
+                                    """)
+                
+                cursor.execute("""UPDATE """ + IStreet._meta.db_table + """
+                                SET    street = SUBSTRING(street, 1, CHAR_LENGTH(street) - STRPOS(REVERSE(street), ' '))
+                                    , txt2 =  RIGHT(street, STRPOS(REVERSE(street), ' ') - 1)
+                                WHERE    RIGHT(street, STRPOS(REVERSE(street), ' ') ) IN (' FG')
+                                    """)
+                
+                cursor.execute("""UPDATE """ + IStreet._meta.db_table + """
+                                SET    street = SUBSTRING(street, 1, CHAR_LENGTH(street) - STRPOS(REVERSE(street), ' '))
+                                    , street_type = RIGHT(street, STRPOS(REVERSE(street), ' ') - 1)
+                                WHERE    street LIKE '% %'
+                                    """)
+                
+                cursor.execute("""UPDATE """ + IStreet._meta.db_table + """
+                                SET    street = street || ' FG'
+                                    , txt2 = ''
+                                WHERE    txt2 = 'FG'
+                                    """)
+                
+                
+                cursor.execute("""UPDATE """ + IStreet._meta.db_table + """
+                                SET    street = NULLIF(street, '')
+                                        , street_prefix = NULLIF(street_prefix, '')
+                                        , street_suffix = NULLIF(street_suffix, '')
+                                        , street_type = NULLIF(street_type, '')
+                                        """)
+                
+                # update street_id where available
+                cursor.execute("""UPDATE    impo_istreet
+                        SET    street_id_id = s.id
+                        FROM    prop_street s
+                        JOIN    impo_istreet i
+                                ON i.txt = s.ext
+
+                        """)
+                
+                
+                # Delete where parcel_id IS NULL
+                IProperty.objects.filter(parcel__isnull=True).delete()
+
+                # Delete NULL PIDs
+                IProperty.objects.filter(txt__isnull=True).delete()
+                # Delete duplicate PIDs
+                cursor.execute("""DELETE FROM """ + IProperty._meta.db_table + """ p
+                                USING impo_iproperty a
+                                WHERE p.txt = a.txt
+                                    AND p.id < a.id""")
+
+                # TODO: fill in missing address bits for parcels and properties    
                 
 
 class Source_Link(models.Model):
@@ -842,4 +905,15 @@ class IPolicy(models.Model):
     num3 = models.DecimalField(null=True, max_digits=20, decimal_places=10) 
     geom = models.MultiPolygonField(srid=4326, null=True)
  
-
+class IStreet(models.Model):
+    street_id = models.ForeignKey('prop.Street', null=True, db_index=True, on_delete=models.SET_NULL)
+    txt = models.CharField(max_length=50, null=True)
+    txt2 = models.CharField(max_length=50, null=True)
+    txt3 = models.CharField(max_length=50, null=True)
+    street_prefix = models.CharField(max_length=20, null=True)
+    street = models.CharField(max_length=50, null=True)
+    street_type = models.CharField(max_length=20, null=True)
+    street_suffix = models.CharField(max_length=20, null=True)
+    type = models.CharField(max_length=50, null=True)
+    cls = models.CharField(max_length=50, null=True)
+    geom = models.MultiLineStringField(srid=4326)
