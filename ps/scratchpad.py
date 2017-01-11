@@ -78,7 +78,7 @@ all_p = Parcel.objects.all()
 Parcel.objects.update(street_type=street[street[::-1].find(' ')+1:], street=street[:street[::-1].find(' ')])
 
 
-
+ogr2ogr --config CARTODB_API_KEY 60dcbd897ae780f97db5090a7160f9a2d7c3222d -t_srs EPSG:4326 -f CartoDB "Carto:thementat" agg.json
 
 
 
@@ -155,38 +155,38 @@ import csv
 s = Source.objects.get(pk=17)
 
 request = requests.get(s.location, stream=True)
-#was the request OK?
-#if request.status_code != requests.codes.ok:
-    # TODO: Nope, error handling, skip file etc etc etc
-#    continue
 
-# Get the filename from the url, used for saving later
-file_name = self.location.split('/')[-1]
 
-# Create a temporary file
-tfile = tempfile.NamedTemporaryFile()
-# Read the streamed image in sections
-for block in request.iter_content(1024 * 8):
-    # If no more file then stop
-    if not block:
-        break
-    # Write image block to temporary file
-    tfile.write(block)
-    tfile.seek(0)
-# unzip the file if necessary
-fileloc = tfile.name
-if self.location.split('.')[-1] == 'zip':
-    tdir = tempfile.TemporaryDirectory()
-    shutil.unpack_archive(tfile.name, tdir.name, format='zip')
-    if self.source_type == 'shp':
-        # there are often several files in the shapefile zip.  we just want the .shp
-        fileloc = tdir.name + '/' + '.'.join(self.location.rsplit('.', 1)[0].rsplit('/')[-1].rsplit('_',1))
-    else:
-        fileloc = tdir.name + '/' + listdir(tdir.name)[0]
-else:
-    pass
-else:
-fileloc = self.location
 
+from mls.models import Paragon_Mail
+m = Paragon_Mail.objects.get(pk=5)
+m.retrieve()
+
+for field in fields:
+    ftype = Listing._meta.get_field(field.name).get_internal_type()
+    d = browser.find_element_by_xpath(field.location).get_attribute('innerText')
+    if d == '':
+        d = None
+    elif ftype == 'IntegerField':
+        non_decimal = re.compile(r'[^\d.]+')
+        d = int(float(non_decimal.sub('', d)))
+    elif ftype == 'DecimalField':
+        non_decimal = re.compile(r'[^\d.]+')
+        d = float(non_decimal.sub('', d))
+    elif ftype == 'DateField':
+        d = datetime.datetime.strptime(d, '%m/%d/%Y').strftime('%Y-%m-%d')
+    
+    fvalues[field.name] = d
+
+if d == '':
+    d = None
+elif ftype == 'IntegerField':
+    non_decimal = re.compile(r'[^\d.]+')
+    d = int(float(non_decimal.sub('', d)))
+elif ftype == 'Decimalfield':
+    non_decimal = re.compile(r'[^\d.]+')
+    d = float(non_decimal.sub('', d))
+elif ftype == 'DateField':
+    d = datetime.datetime.strptime(d, '%m/%d/%Y').strftime('%Y-%m-%d')
 
 
