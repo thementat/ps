@@ -426,3 +426,11 @@ class Street(models.Model):
                           , 'type' : ip.type
                           , 'cls' : ip.cls
                           , 'geom' : ip.geom})
+
+class Use(models.Model):
+    code = models.CharField(max_length=20, null=True)
+    name = models.CharField(max_length=50, null=True)
+    description = models.CharField(max_length=250, null=True)
+    zone = models.ManyToManyField(Zone, db_index=True)
+    policy = models.ManyToManyField(Policy, db_index=True)
+    
