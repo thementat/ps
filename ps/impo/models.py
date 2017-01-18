@@ -26,6 +26,7 @@ class Source(models.Model):
     muni = models.ForeignKey('prop.Muni', on_delete=models.CASCADE, db_index=True)
     model_name = models.CharField(max_length=50)
     iparam = models.IntegerField(null=True)
+    sparam = models.CharField(max_length=250, null=True)
     source_type = models.CharField(max_length=20, null=True)
     location = models.CharField(max_length=250, null=True)
     update_date = models.DateField(null=True)
@@ -712,34 +713,6 @@ class Source(models.Model):
                 # TODO: find the year from somewhere
                 cursor.execute("""UPDATE """ + IValue._meta.db_table + """ SET valdate = '2016-07-01'""")
 
-            if self.model_name == 'IZone':
-                #TODO: insert some tests to ensure that the meta-data is the same across code
-                cursor = connection.cursor()
-                
-                #make geometries valid
-                cursor.execute("""UPDATE """ + IZone._meta.db_table + """
-                                SET    geom = ST_MakeValid(geom)
-                                        """)
-                
-                #clean data
-                cursor.execute("""UPDATE """ + IZone._meta.db_table + """
-                                SET    code = 'RM-30'
-                                WHERE    code = 'RM30'
-                                """)
-                
-                #fix screwed up urls
-                cursor.execute("""UPDATE """ + IZone._meta.db_table + """
-                                SET    url = LEFT(url, LENGTH(url) - STRPOS(REVERSE(url), '=') + 1) || REPLACE(code, '-', '')
-                                """)
-                
-                
-                
-                #alter CD zone codes
-                cursor.execute("""UPDATE """ + IZone._meta.db_table + """
-                                SET    code = code || ' (' || REPLACE(txt, 'B/L ', '') || ')'
-                                WHERE    code = 'CD'
-                                """)
-                
             if self.model_name == 'IStreet':
                 
                 cursor = connection.cursor()
@@ -804,6 +777,33 @@ class Source(models.Model):
                                     AND p.id < a.id""")
 
                 # TODO: fill in missing address bits for parcels and properties    
+
+            if self.model_name == 'IPolicy':
+                #TODO: insert some tests to ensure that the meta-data is the same across code
+                cursor = connection.cursor()
+                
+                #make geometries valid
+                cursor.execute("""UPDATE """ + IPolicy._meta.db_table + """
+                                SET    geom = ST_MakeValid(geom)
+                                        """)
+                
+                #create a code
+                cursor.execute("""UPDATE """ + IPolicy._meta.db_table + """
+                                SET code = replace(
+                                REPLACE(
+                                TRANSLATE(replace(name, '.', ''),
+                                    'abcdefghijklmnopqrstuvwxyz',
+                                    RPAD('#',26,'#') ), '#','' ),' ','' )
+                                        """)
+                
+                #create a code
+                cursor.execute("""UPDATE """ + IPolicy._meta.db_table + """
+                                SET policy_id = (
+                                                SELECT id
+                                                FROM    prop_policy
+                                                WHERE    muni_id = """ + str(self.muni.id) + """
+                                                        AND code = '""" + self.sparam + """'
+                                        """)
                 
 
 class Source_Link(models.Model):
@@ -894,6 +894,7 @@ class IZone(models.Model):
     geom = models.MultiPolygonField(srid=4326, null=True)
 
 class IPolicy(models.Model):
+    plan = models.ForeignKey('prop.Plan', null=True, db_index=True, on_delete=models.SET_NULL)
     code = models.CharField(max_length=20, null=True)
     name = models.CharField(max_length=150, null=True)
     url = models.CharField(max_length=250, null=True)
