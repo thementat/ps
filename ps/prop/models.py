@@ -149,7 +149,7 @@ class Policy(models.Model):
         agg_policy = IPolicy.objects.values('plan_id', 'code', 'name', 'url').annotate(geom=Union('geom'))
         for policy in agg_policy:
             obj, created = Policy.objects.update_or_create(
-                            muni=muni, plan=['plan_id'], code=policy['code'], 
+                            plan_id=policy['plan_id'], code=policy['code'], 
                             defaults={'name': policy['name'],
                                       'url' : policy['url'],
                                       'geom' : policy['geom']})
