@@ -16,11 +16,21 @@ class Source(models.Model):
     code = models.CharField(max_length=50, db_index=True)
     name = models.CharField(max_length=50)
     
+    def update(self):
+        Mail.sync()
+        for m in Mail.objects.filter(complete=False, search__source=self):
+            m.retrieve(self)
+        
+            
+            
+            
+
+    
 class Search(models.Model):
     source = models.ForeignKey(Source, on_delete=models.CASCADE, db_index=True)
     code = models.CharField(max_length=50, db_index=True)
     name = models.CharField(max_length=150)
-
+    
 class Listing(models.Model):
     source = models.ForeignKey(Source, db_index=True, on_delete=models.CASCADE)
     mlsn = models.CharField(max_length=50, null=True, db_index=True)
@@ -55,22 +65,22 @@ def update_Listing_Propertychange(sender, update_fields, created, instance, **kw
         
         # find all Listing objects where pid = new ext, and set property = new record
         #TODO: would this be simpler for us to manage at object creation?
+        #TODO: move this somewhere that we can also listen for property creation
         Listing.objects.filter(pid=instance.ext).update(property=instance)
-                
+
 class Paragon_Field(models.Model):
     search = models.ForeignKey(Search, on_delete=models.CASCADE, db_index=True)
     name = models.CharField(max_length=50, db_index=True)
     location = models.CharField(max_length=150, db_index=True)
 
-class Paragon_Mail(models.Model):
+class Mail(models.Model):
     msg_id = models.IntegerField(null=True)
     sent_date = models.DateTimeField(null=True)
     search = models.ForeignKey(Search, on_delete=models.CASCADE, db_index=True)
     url = models.CharField(max_length=250, null=True)
     complete = models.BooleanField(default=False)
     
-    def retrieve(self):
-        src = Source.objects.get(code='bcp')
+    def retrieve(self, source):
         browser = webdriver.Chrome('/Users/chrisbradley/git/ps/mls/chromedriver')
         browser.get(self.url)
         framesets = browser.find_elements_by_tag_name("frameset")
@@ -117,7 +127,7 @@ class Paragon_Mail(models.Model):
                 fvalues['property'] = prop
                 # create or update
                 Listing.objects.update_or_create(
-                    source=src, mlsn=mlsn,
+                    source=source, mlsn=mlsn,
                     defaults=fvalues)
                 
                 
@@ -157,7 +167,7 @@ class Paragon_Mail(models.Model):
         msg_list = list(map(int, msg_ids[0].decode('utf-8').split()))
         
         # delete email records no longer in the mailbox
-        Paragon_Mail.objects.exclude(msg_id__in=msg_list).delete()
+        Mail.objects.exclude(msg_id__in=msg_list).delete()
         
         # iterate through the mail messages, and create/update Paragon_Mail objects       
         for msgid in msg_list:
@@ -166,16 +176,20 @@ class Paragon_Mail(models.Model):
                 print('ERROR getting message ' + msgid)
             msg = email.message_from_bytes(data[0][1])
             soup = BeautifulSoup(msg.get_payload(decode=True), 'html.parser')
-            search = Search.objects.get(code=soup.find('p').get_text().replace("\t", "").replace("\r\n", " "))
+            search = Search.objects.get(code=soup.find('p').get_text().replace("\t", "").replace("\r\n", " ").replace("\xa0", " "))
             url = soup.find('a')['href']
             senton = datetime.datetime.strptime(msg['Date'], '%d %b %Y %H:%M:%S %z')
             #TODO: sort out timezone warning
-            Paragon_Mail.objects.update_or_create(
+            Mail.objects.update_or_create(
                 msg_id=msgid,
                 defaults={'sent_date' : senton.strftime('%Y-%m-%d %H:%M:%S.%f'), 'search': search, 'url': url})
             
         M.close()
         M.logout()
         
-        
+    @classmethod
+    def scrape(cls):
+        for pm in Mail.objects.filter(complete=False):
+            pm.retrieve()
+
         
