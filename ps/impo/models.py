@@ -620,30 +620,39 @@ class Source(models.Model):
                 
                 IProperty.objects.filter(txt3__in=['City Road', 'Dedicated Road']).delete()
                 
-                #bind records to parcels based on txt2 
-                cursor.execute("""UPDATE """ + IProperty._meta.db_table + """ r
+                #===============================================================
+                # #bind records to parcels based on txt2 
+                # cursor.execute("""UPDATE """ + IProperty._meta.db_table + """ r
+                #                 SET parcel_id = p.id
+                #                 FROM    prop_parcel p
+                #                 WHERE    RIGHT(p.ext, 10) = REPLACE(r.txt2, '-', '')
+                #                         AND p.muni_id = """ + str(self.muni.id))
+                # 
+                # #bind records to parcels based on num where txt3 is  Strata
+                # cursor.execute("""UPDATE """ + IProperty._meta.db_table + """ r
+                #                 SET parcel_id = p.id
+                #                 FROM    prop_parcel p
+                #                 WHERE    p.ext2 = CAST(r.num AS character varying)
+                #                         AND r.txt3 = 'Standard Strata'
+                #                         AND p.muni_id = """ + str(self.muni.id))
+                # 
+                # #bind records to parcels based on txt2 parcel_id is still null
+                # cursor.execute("""UPDATE """ + IProperty._meta.db_table + """ r
+                #                 SET parcel_id = p.id
+                #                 FROM    prop_parcel p
+                #                 WHERE    p.ext2 = CAST(r.num AS character varying)
+                #                         AND r.parcel_id IS NULL
+                #                         AND p.muni_id = """ + str(self.muni.id))
+                #===============================================================
+                
+                #bind records to parcels based on addressid and lotid
+                cursor.execute("""UPDATE """ + IProperty._meta.db_table + """ r1
                                 SET parcel_id = p.id
-                                FROM    prop_parcel p
-                                WHERE    RIGHT(p.ext, 10) = REPLACE(r.txt2, '-', '')
-                                        AND p.muni_id = """ + str(self.muni.id))
-                
-                #bind records to parcels based on num where txt3 is  Strata
-                cursor.execute("""UPDATE """ + IProperty._meta.db_table + """ r
-                                SET parcel_id = p.id
-                                FROM    prop_parcel p
-                                WHERE    p.ext2 = CAST(r.num AS character varying)
-                                        AND r.txt3 = 'Standard Strata'
-                                        AND p.muni_id = """ + str(self.muni.id))
-                
-                #bind records to parcels based on txt2 parcel_id is still null
-                cursor.execute("""UPDATE """ + IProperty._meta.db_table + """ r
-                                SET parcel_id = p.id
-                                FROM    prop_parcel p
-                                WHERE    p.ext2 = CAST(r.num AS character varying)
-                                        AND r.parcel_id IS NULL
-                                        AND p.muni_id = 3""") + str(self.muni.id)
-                
-                
+                                FROM     """ + IProperty._meta.db_table + """ r2
+                                JOIN    prop_parcel p
+                                        ON p.ext2 = CAST(r.num AS character varying)
+                                        AND p.muni_id = """ + str(self.muni.id) + """
+                                WHERE   r1.num2 = r2.num2""")                
                 
                 cursor.execute("""UPDATE """ + IProperty._meta.db_table + """
                                 SET    street = NULLIF(street, '')
