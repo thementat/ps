@@ -308,8 +308,10 @@ class Property(models.Model):
                             OR p.street_suffix <> ip.street_type
                             OR p.postal <> ip.postal)""")
         
-        # delete any parcels that no longer exist
-        Property.objects.filter(parcel__iproperty__isnull=True).delete()
+        # delete any properties that no longer exist
+        ## TODO: Fix this... it deletes all properties
+        ## tricky because we need the muni_id
+        ##Property.objects.filter(parcel__iproperty__isnull=True).delete()
         
         # create new properties
         cursor.execute("""INSERT INTO """ + Property._meta.db_table + """ 
