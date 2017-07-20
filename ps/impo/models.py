@@ -446,7 +446,7 @@ class Source(models.Model):
                 cursor.execute("""DELETE FROM """ + IValue._meta.db_table + """ t
                                 USING    """ + IValue._meta.db_table + """ a
                                 WHERE   t.txt2 = a.txt2
-                                        AND t.txt < a.txt"")
+                                        AND t.txt < a.txt""")
                 
                 
                 # attach the property_id
