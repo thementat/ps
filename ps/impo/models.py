@@ -650,7 +650,7 @@ class Source(models.Model):
                                 SET parcel_id = p.id
                                 FROM     """ + IProperty._meta.db_table + """ r2
                                 JOIN    prop_parcel p
-                                        ON p.ext2 = CAST(r.num AS character varying)
+                                        ON p.ext2 = CAST(r2.num AS character varying)
                                         AND p.muni_id = """ + str(self.muni.id) + """
                                 WHERE   r1.num2 = r2.num2""")                
                 
