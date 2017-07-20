@@ -441,6 +441,14 @@ class Source(models.Model):
                                                     GROUP BY txt
                                                     HAVING COUNT(txt) > 1)
                                 AND d.valdate IS NULL""")
+                # vancouver buildings are often built on several legal parcels.  This means that a folio
+                # may be attached to multiple pids.  We need to delete the duplicate folios
+                cursor.execute("""DELETE FROM """ + IValue._meta.db_table + """ t
+                                USING    """ + IValue._meta.db_table + """ a
+                                WHERE   t.txt2 = a.txt2
+                                        AND t.txt < a.txt"")
+                
+                
                 # attach the property_id
                 cursor.execute("""UPDATE """ + IValue._meta.db_table + """ v
                                 SET property_id = r.id
