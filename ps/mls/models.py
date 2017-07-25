@@ -37,6 +37,9 @@ class Listing(models.Model):
     property = models.ForeignKey('prop.Property', null=True, db_index=True, on_delete=models.SET_NULL)
     pid = models.CharField(max_length=50, null=True, db_index=True)
     status = models.CharField(max_length=25, null=True, db_index=True)
+    address = models.CharField(max_length=150, null=True)
+    area = models.CharField(max_length=50, null=True)
+    subarea = models.CharField(max_length=50, null=True)
     list_price = models.DecimalField(null=True, max_digits=20, decimal_places=4)
     sale_price = models.DecimalField(null=True, max_digits=20, decimal_places=4)
     list_date = models.DateField(null=True)
@@ -53,8 +56,8 @@ class Listing(models.Model):
     sqft_a = models.DecimalField(null=True, max_digits=20, decimal_places=4)
     sqft_m = models.DecimalField(null=True, max_digits=20, decimal_places=4)
     sqft_e = models.DecimalField(null=True, max_digits=20, decimal_places=4)
-    sqft_bu = models.DecimalField(null=True, max_digits=20, decimal_places=4)
-    sqft_bf = models.DecimalField(null=True, max_digits=20, decimal_places=4)
+    sqft_u = models.DecimalField(null=True, max_digits=20, decimal_places=4)
+    sqft_f = models.DecimalField(null=True, max_digits=20, decimal_places=4)
     sqft_b = models.DecimalField(null=True, max_digits=20, decimal_places=4)
     development_units = models.IntegerField(null=True)
     strata_units = models.IntegerField(null=True)
@@ -68,9 +71,10 @@ def update_Listing_Propertychange(sender, update_fields, created, instance, **kw
         #TODO: move this somewhere that we can also listen for property creation
         Listing.objects.filter(pid=instance.ext).update(property=instance)
 
-class Paragon_Field(models.Model):
+class Field(models.Model):
     search = models.ForeignKey(Search, on_delete=models.CASCADE, db_index=True)
     name = models.CharField(max_length=50, db_index=True)
+    location_type = models.CharField(max_length=20, db_index=True)
     location = models.CharField(max_length=150, db_index=True)
 
 class Mail(models.Model):
@@ -90,7 +94,7 @@ class Mail(models.Model):
         all_a = browser.find_elements_by_tag_name('a')
         
         # get the field list
-        fields = Paragon_Field.objects.filter(search=self.search)
+        fields = Field.objects.filter(search=self.search)
         for index in range(0, len(all_a)):
             if index > 1:
                 ftblrow = []
@@ -105,7 +109,14 @@ class Mail(models.Model):
                 fvalues = {}
                 for field in fields:
                     ftype = Listing._meta.get_field(field.name).get_internal_type()
-                    d = browser.find_element_by_xpath(field.location).get_attribute('innerText')
+                    # xpath doesnt seem to be consistent for Paragon... we need to use different lcation types
+                    if field.location_type == 'xpath':
+                        d = browser.find_element_by_xpath(field.location).get_attribute('innerText')
+                    elif field.location_type == 'class_name':
+                        d = browser.find_element_by_class_name(field.location).get_attribute('innerText')
+                    elif field.location_type == 'css_selector':
+                        d = browser.find_element_by_css_selector(field.location).get_attribute('innerText')
+                    # clean the data    
                     if d == '':
                         d = None
                     elif ftype == 'IntegerField':
