@@ -462,8 +462,7 @@ class Source(models.Model):
                 #delete those with no property_id
                 IValue.objects.filter(property__isnull=True).delete()
                 # set the date
-                # TODO: find the year from somewhere
-                cursor.execute("""UPDATE """ + IValue._meta.db_table + """ SET valdate = '2016-07-01'""")
+                cursor.execute("""UPDATE """ + IValue._meta.db_table + """ SET valdate = valdate || '-07-01'""")
             
             if self.model_name == 'IZone':
                 #TODO: insert some tests to ensure that the meta-data is the same across code
